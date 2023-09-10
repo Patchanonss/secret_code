@@ -1,96 +1,135 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <week8.h>
+#include <math.h>
+#include "week8.h"
 #ifndef __bin_tree__
-typedef struct node {
-int data;
-struct node *left;
-struct node *right;
-} node_t;
-typedef node_t tree_t;
+#define __bin_tree__
+typedef struct node{
+    int data;
+    int nb;
+    struct node *left;
+    struct node *right;
+} tree_t;
 #endif
-typedef struct list1{
-    int val;
-    struct list1 *next;
-}list1;
-list1 *createlist(int sval){
-    list1 *temp = (list1*)malloc(sizeof(list1));
-    temp->val = sval;
-    temp->next = NULL;
-    return temp;
-}
-list1 *push(list1 *head,int val1){
-    list1* temp = createlist(val1);
-    if (head == NULL){
-        head = temp;
-        return head;
-    }
-    list1 *curr = head;
-    while (curr->next != NULL){
-        curr = curr->next;
-    }
-    curr->next = temp;
-    return head;
-}
-void show(list1* head){
-    while (head != NULL){
-        printf("%d ",head->val);
-        head = head->next;
-    }
-    printf("\n");
-}
-list1 *headpre = NULL;
-list1 *headin = NULL;
-list1 *headpost = NULL;
-void fake_preorder(tree_t *root){
+int countnode(tree_t *root){
     if (root == NULL){
-        return;
+        return 0;
     }
-    headpre = push(headpre,root->data);
-    // printf("%d ",root->data);
-    fake_preorder(root->left);
-    fake_preorder(root->right);
+    return 1 + countnode(root->left) + countnode(root->right);
 }
-void fake_postorder(tree_t *root){
-    if (root == NULL){
-        return;
+int max(int a, int b) {
+    if (a > b) {
+        return a;
     }
-    fake_postorder(root->left);
-    fake_postorder(root->right);
-    headpost = push(headpost,root->data);
+    return b;
 }
-void fake_inorder(tree_t *root){
-    if (root == NULL){
-        return;
+int maxDepth(tree_t * root) {
+
+    if (root == NULL) {
+        return 0;
     }
-    fake_inorder(root->left);
-    headin = push(headin,root->data);
-    fake_inorder(root->right);
+    return max(
+        maxDepth(root->left),
+        maxDepth(root->right)
+    ) + 1;
 }
-void print_preorder(tree_t *root){
-    fake_preorder(root);
-    show(headpre);
+int is_full(tree_t *root){
+    if (root->left == NULL && root->right == NULL){
+        return 1;
+    }
+    else if (root->left != NULL && root->right == NULL){
+        return 0;
+    }
+    else if (root->left == NULL && root->right != NULL)
+        return 0;
+    else if (root->left != NULL && root->right != NULL){
+        return is_full(root->left) && is_full(root->right);
+    }
 }
-void print_inorder(tree_t *root){
-    fake_inorder(root);
-    show(headin);
+int is_perfect(tree_t *root){
+    int h = maxDepth(root) - 1;
+    int n = countnode(root);
+    if (n != pow(2,h+1)-1){
+        return 0;
+    }
+    return 1;
 }
-void print_postorder(tree_t *root){
-    fake_postorder(root);
-    show(headpost);
+int complete(tree_t *t, int idx, int node){
+    if (t == NULL)
+        return 1;
+    if (idx >= node)
+        return 0;
+    if (complete(t->left, 2*idx+1, node) && complete(t->right, 2*idx+2, node))
+        return 1;
+    return 0;
 }
-int main(void){
+int is_complete(tree_t *root){
+    int nodenum = countnode(root);
+    return complete(root, 0, nodenum);
+}
+int fake_degenerate(tree_t *root,int currh){
+    if (root->left == NULL && root->right == NULL){
+        return 1;
+    }
+    if (root->left != NULL && root->right != NULL){
+        if (currh != 1){
+            return 1;
+        }
+        return 0;
+    }
+    int a,b;
+    a = 0;
+    b = 0;
+    if (root->left != NULL){
+        a = fake_degenerate(root->left,currh+1);
+    }
+    if (root->right != NULL){
+        b = fake_degenerate(root->right,currh+1);
+    }
+    if (a ^ b){
+        return 1;
+    }
+    return 0;
+}
+int is_degenerate(tree_t *root){
+    return fake_degenerate(root,1);
+}
+int only_left(tree_t *root) {
+    if (root == NULL || (root->left == NULL && root->right == NULL)) {
+        return 1;
+    }
+    if (root->right != NULL) {
+        return 0;
+    }
+    return only_left(root->left) && only_left(root->right);
+}
+int only_right(tree_t* root) {
+    if (root == NULL || (root->left == NULL && root->right == NULL)) {
+        return 1; 
+    }
+    
+    if (root->left != NULL) {
+        return 0;
+    }
+    return only_right(root->left) && only_right(root->right);
+}
+int is_skewed(tree_t *root){
+    return only_left(root) ^ only_right(root);
+}
+
+int main(void) {
     tree_t *t = NULL;
     int n, i;
     int parent, child;
     int branch; // 0 root, 1 left, 2 right
     scanf("%d", &n);
     for (i=0; i<n; i++) {
-        scanf("%d %d %d", &parent, &child,&branch);
+        scanf("%d %d %d", &parent, &child,
+        &branch);
         t = attach(t, parent, child, branch);
     }
-    print_preorder(t);
-    print_postorder(t);
-    print_inorder(t);
+    printf("%d %d %d %d %d\n", is_full(t),
+    is_perfect(t), is_complete(t),
+    is_degenerate(t), is_skewed(t));
     return 0;
 }
